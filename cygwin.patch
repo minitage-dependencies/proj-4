@@ -1,0 +1,116 @@
+diff -ur proj-4.7.0/configure.in proj-4.7.0.new/configure.in
+--- proj-4.7.0/configure.in	2009-09-24 04:17:32.000000000 +0200
++++ proj-4.7.0.new/configure.in	2009-11-26 11:57:49.375000000 +0100
+@@ -2,6 +2,8 @@
+ 
+ AC_PREREQ(2.59)
+ AC_INIT([PROJ.4 Projections], 4.7.0, [warmerdam@pobox.com], proj)
++
++AC_CONFIG_AUX_DIR(build-aux)
+ AC_LANG(C)
+ 
+ 
+@@ -9,6 +11,10 @@
+ AM_MAINTAINER_MODE
+ AM_CONFIG_HEADER(src/proj_config.h)
+ 
++
++dnl Check for host type.
++AC_CANONICAL_HOST
++
+ dnl Checks for programs.
+ AC_PROG_CC
+ AC_PROG_INSTALL
+@@ -16,12 +22,64 @@
+ AC_PROG_MAKE_SET
+ AM_PROG_LIBTOOL
+ 
++
++
++dnl Checks for compiler output filename suffixes.
++C_OBJEXT
++AC_EXEEXT
++
++dnl Check for build configuration
++AC_LIBTOOL_WIN32_DLL
++AM_PROG_LIBTOOL
++
++dnl Compilation on mingw and Cygwin needs special Makefile rules
++if test "$enable_shared" = yes; then
++  case "$host_os" in
++    mingw* | cygwin*) is_woe32dll=yes ;;
++    *) is_woe32dll=no ;;
++  esac
++else
++  is_woe32dll=no
++fi
++AM_CONDITIONAL([WOE32DLL], [test $is_woe32dll = yes])
++if test $is_woe32dll = yes; then
++  AC_DEFINE([WOE32DLL], 1,
++    [Define when --enable-shared is used on mingw or Cygwin.])
++fi
++case "$host_os" in
++  mingw* ) is_woe32_native=yes ;;
++  *)       is_woe32_native=no  ;;
++esac
++AM_CONDITIONAL([WOE32_NATIVE], [test $is_woe32_native = yes])
++if test $is_woe32_native = yes; then
++  AC_DEFINE([WOE32_NATIVE], 1,
++    [Define if host is mingw])
++fi
++
++case "$host_os" in
++  # On Cygwin, without -no-undefined, a warning is emitted and only a static
++  # library is built.
++  beos*)   LTNOUNDEF='-no-undefined' ;;
++  mingw*)  LTNOUNDEF='-no-undefined' ;;
++  cygwin*) LTNOUNDEF='-no-undefined' ;;
++  *) LTNOUNDEF='' ;;
++esac
++AC_SUBST([LTNOUNDEF])
++
++
+ dnl Checks for libraries.
+ AC_CHECK_LIB(m,exp,,,)
+ 
+ dnl We check for headers
+ AC_HEADER_STDC
+ 
++AC_CHECK_HEADERS([stddef.h])
++
++dnl Check for functions
++AC_CHECK_FUNCS([strerror])
++ 
++
++
+ dnl ---------------------------------------------------------------------------
+ dnl Check for JNI support.
+ dnl ---------------------------------------------------------------------------
+diff -ur proj-4.7.0/src/proj.c proj-4.7.0.new/src/proj.c
+--- proj-4.7.0/src/proj.c	2009-01-26 18:18:50.000000000 +0100
++++ proj-4.7.0.new/src/proj.c	2009-11-26 10:53:56.484375000 +0100
+@@ -8,7 +8,7 @@
+ #include "emess.h"
+ 
+ /* TK 1999-02-13 */
+-#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__WIN32__)
++#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+ #  include <fcntl.h>
+ #  include <io.h>
+ #  define SET_BINARY_MODE(file) setmode(fileno(file), O_BINARY)
+@@ -145,6 +145,7 @@
+ 			else
+ 				(void)fputs("\t<* * * * * *>", stdout);
+ 		(void)fputs(bin_in ? "\n" : s, stdout);
++        fflush(stdout);
+ 	}
+ }
+ 	static void	/* file processing function --- verbosely */
+@@ -239,6 +240,7 @@
+ 		(void)printf(" [ %.8f ]\n", facs.conv * RAD_TO_DEG);
+ 		(void)printf("Max-min (Tissot axis a-b) scale error: %.5f %.5f\n\n",
+ 			facs.a, facs.b);
++        fflush(stdout);
+ 	}
+ }
+ 

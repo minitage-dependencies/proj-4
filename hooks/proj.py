@@ -42,5 +42,15 @@ def installmaps(options,buildout):
         f = IUnpackerFactory()
         unpacker = f(ldest)
         unpacker.unpack(ldest, dest)
+        
+def h(options,buildout):
+    if sys.platform.startswith('cygwin'):
+        print
+        print 'Reconfiguring'
+        print
+        c = os.getcwd()
+        os.chdir(options['compile-directory'])
+        os.system("autoreconf -ifv")
+    installmaps(options, buildout)
 
 
