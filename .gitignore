@@ -3,4 +3,5 @@
 .installed.cfg
 bin
 parts
+*.zip
 
