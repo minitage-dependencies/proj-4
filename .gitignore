@@ -5,3 +5,9 @@ bin
 parts
 *.zip
 
+.minitage
+sys/
+__minitage__part__tmp/
+*.pyc
+.installed.cfg
+*.pyc
